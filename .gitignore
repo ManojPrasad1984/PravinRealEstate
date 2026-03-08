@@ -1,0 +1,7 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/RealEstateManagement/bin/Debug/net8.0
+/RealEstateManagement/obj
