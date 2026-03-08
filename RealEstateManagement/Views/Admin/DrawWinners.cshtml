@@ -1,0 +1,22 @@
+﻿@model List<RealEstateManagement.Models.LuckyDrawEntry>
+
+<h2>Lucky Draw Winners</h2>
+
+<table class="table">
+
+    <tr>
+        <th>Name</th>
+        <th>Mobile</th>
+        <th>Card</th>
+    </tr>
+
+    @foreach (var w in Model)
+    {
+        <tr>
+            <td>@w.FullName</td>
+            <td>@w.MobileNumber</td>
+            <td>@w.CardNumber</td>
+        </tr>
+    }
+
+</table>

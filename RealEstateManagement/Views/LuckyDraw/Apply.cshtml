@@ -1,0 +1,173 @@
+﻿@{
+    ViewData["Title"] = "Lucky Draw Application";
+}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+<div class="container mt-5">
+
+    <div class="card shadow-lg p-4">
+
+        <h3 class="text-center mb-4">
+            Wealthline Infrastructure Lucky Draw Registration
+        </h3>
+
+        <form id="drawForm">
+
+            <div class="row">
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Full Name</label>
+                    <input id="FullName" class="form-control" type="text" required />
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Mobile</label>
+                    <input id="Mobile" class="form-control" type="text" required />
+                </div>
+
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Address</label>
+                <textarea id="Address" class="form-control" rows="3" required></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Aadhaar Number</label>
+                <input id="AadhaarNumber" maxlength="12" class="form-control" type="text" required />
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Select Prize</label>
+
+                <select id="Prize" class="form-control">
+
+                    <option value="1000 Sqft Plot">1000 Sqft Plot</option>
+                    <option value="LCD TV">LCD TV</option>
+                    <option value="10gm Silver Coin">10gm Silver Coin</option>
+
+                </select>
+
+            </div>
+
+            <div class="text-center">
+
+                <button id="payButton" class="btn btn-warning btn-lg">
+                    Pay ₹1
+                </button>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+
+    document.getElementById("payButton").onclick = function (e) {
+
+        e.preventDefault();
+
+        var entry = {
+
+            FullName: document.getElementById("FullName").value,
+            MobileNumber: document.getElementById("Mobile").value,
+            Address: document.getElementById("Address").value,
+            AadhaarNumber: document.getElementById("AadhaarNumber").value,
+            PrizeChoice: document.getElementById("Prize").value
+
+        };
+
+        fetch("/LuckyDraw/CreateOrder", {
+
+            method: "POST"
+
+        })
+        .then(response => response.json())
+        .then(data => {
+
+            var options = {
+
+                key: "rzp_test_SNeJ15GTPw2Cvx",
+
+                amount: 100, // ₹1 test payment
+
+                currency: "INR",
+
+                name: "Wealthline Infrastructure",
+
+                description: "Lucky Draw Entry",
+
+                order_id: data.orderId,
+
+                handler: function (response) {
+
+                    fetch("/LuckyDraw/VerifyPayment", {
+
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+
+                        body: JSON.stringify({
+
+                            entry: entry,
+
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_signature: response.razorpay_signature
+
+                        })
+
+                    })
+                    .then(res => res.json())
+                    .then(result => {
+
+                        if (result.success) {
+
+                            alert("Payment Successful!\nCard Number: " + result.card);
+
+                            window.location.href =
+                                "/LuckyDraw/DownloadReceipt?card=" + result.card;
+
+                        }
+                        else {
+
+                            alert(result.message || "Payment verification failed");
+
+                        }
+
+                    });
+
+                },
+
+                prefill: {
+
+                    name: entry.FullName,
+                    contact: entry.MobileNumber
+
+                },
+
+                theme: {
+
+                    color: "#0d3b66"
+
+                }
+
+            };
+
+            var rzp = new Razorpay(options);
+
+            rzp.open();
+
+        });
+
+    };
+
+</script>
