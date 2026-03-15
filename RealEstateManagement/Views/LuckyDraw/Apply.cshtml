@@ -1,16 +1,14 @@
 ﻿@{
-    ViewData["Title"] = "Lucky Draw Application";
+    ViewData["Title"] = "Lucky Draw Registration";
 }
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <div class="container mt-5">
 
-    <div class="card shadow-lg p-4">
+    <div class="card shadow p-4">
 
-        <h3 class="text-center mb-4">
-            Wealthline Infrastructure Lucky Draw Registration
-        </h3>
+        <h3 class="text-center mb-4">Wealthline Infrastructure Lucky Draw</h3>
 
         <form id="drawForm">
 
@@ -18,43 +16,53 @@
 
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Full Name</label>
-                    <input id="FullName" class="form-control" type="text" required />
+                    <input id="FullName" class="form-control" required />
                 </div>
 
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Mobile</label>
-                    <input id="Mobile" class="form-control" type="text" required />
+                    <input id="Mobile"
+                           maxlength="10"
+                           class="form-control"
+                           oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                           required />
                 </div>
 
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Address</label>
-                <textarea id="Address" class="form-control" rows="3" required></textarea>
+                <textarea id="Address" class="form-control" required></textarea>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Aadhaar Number</label>
-                <input id="AadhaarNumber" maxlength="12" class="form-control" type="text" required />
+                <input id="AadhaarNumber"
+                       maxlength="12"
+                       class="form-control"
+                       oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                       required />
             </div>
 
-            <div class="mb-4">
+            <!-- Prize Selection -->
+
+            <div class="mb-3">
                 <label class="form-label">Select Prize</label>
 
-                <select id="Prize" class="form-control">
+                <select id="PrizeChoice" class="form-select prize-dropdown" required>
 
+                    <option value="">Select Prize</option>
                     <option value="1000 Sqft Plot">1000 Sqft Plot</option>
                     <option value="LCD TV">LCD TV</option>
                     <option value="10gm Silver Coin">10gm Silver Coin</option>
 
                 </select>
-
             </div>
 
             <div class="text-center">
 
                 <button id="payButton" class="btn btn-warning btn-lg">
-                    Pay ₹1
+                    Pay ₹@ViewBag.EntryAmount
                 </button>
 
             </div>
@@ -65,109 +73,184 @@
 
 </div>
 
+
+<!-- SUCCESS MODAL -->
+
+<div class="modal fade" id="successModal">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content">
+
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Payment Successful</h5>
+            </div>
+
+            <div class="modal-body text-center">
+
+                <h5>Your Lucky Draw Entry is Confirmed</h5>
+
+                <p class="mt-3">
+                    Card Number :
+                    <strong id="cardNumber"></strong>
+                </p>
+
+                <p>Please download your receipt for future reference.</p>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <a id="downloadBtn" class="btn btn-primary">
+                    Download Receipt
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 
 <script>
 
-    document.getElementById("payButton").onclick = function (e) {
+    document.getElementById("payButton").onclick = function(e){
 
-        e.preventDefault();
+    e.preventDefault();
 
-        var entry = {
+    let name = FullName.value.trim();
+    let mobile = Mobile.value.trim();
+    let aadhaar = AadhaarNumber.value.trim();
+    let prize = PrizeChoice.value;
 
-            FullName: document.getElementById("FullName").value,
-            MobileNumber: document.getElementById("Mobile").value,
-            Address: document.getElementById("Address").value,
-            AadhaarNumber: document.getElementById("AadhaarNumber").value,
-            PrizeChoice: document.getElementById("Prize").value
+    let mobileRegex = /^[6-9][0-9]{9}$/;
+    let aadhaarRegex = /^[0-9]{12}$/;
 
-        };
+    if(name === ""){
+    alert("Please enter full name");
+    return;
+    }
 
-        fetch("/LuckyDraw/CreateOrder", {
+    if(!mobileRegex.test(mobile)){
+    alert("Invalid mobile number");
+    return;
+    }
 
-            method: "POST"
+    if(!aadhaarRegex.test(aadhaar)){
+    alert("Invalid Aadhaar number");
+    return;
+    }
 
-        })
-        .then(response => response.json())
-        .then(data => {
+    if(prize === ""){
+    alert("Please select prize");
+    return;
+    }
 
-            var options = {
+    let entry = {
+    FullName:name,
+    MobileNumber:mobile,
+    Address:Address.value,
+    AadhaarNumber:aadhaar,
+    PrizeChoice:prize
+    };
 
-                key: "rzp_test_SNeJ15GTPw2Cvx",
+    document.getElementById("payButton").disabled = true;
 
-                amount: 100, // ₹1 test payment
+    fetch("/LuckyDraw/CreateOrder",{method:"POST"})
+    .then(r=>r.json())
+    .then(data=>{
 
-                currency: "INR",
+    let options = {
 
-                name: "Wealthline Infrastructure",
+    key:"@ViewBag.RazorKey",
 
-                description: "Lucky Draw Entry",
+    amount:data.amount*100,
 
-                order_id: data.orderId,
+    currency:"INR",
 
-                handler: function (response) {
+    name:"Wealthline Infrastructure",
 
-                    fetch("/LuckyDraw/VerifyPayment", {
+    description:"Lucky Draw Entry",
 
-                        method: "POST",
+    order_id:data.orderId,
 
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
+    prefill:{
+    name:name,
+    contact:mobile
+    },
 
-                        body: JSON.stringify({
+    handler:function(response){
 
-                            entry: entry,
+    fetch("/LuckyDraw/VerifyPayment",{
 
-                            razorpay_payment_id: response.razorpay_payment_id,
-                            razorpay_order_id: response.razorpay_order_id,
-                            razorpay_signature: response.razorpay_signature
+    method:"POST",
 
-                        })
+    headers:{"Content-Type":"application/json"},
 
-                    })
-                    .then(res => res.json())
-                    .then(result => {
+    body:JSON.stringify({
 
-                        if (result.success) {
+    entry:entry,
 
-                            alert("Payment Successful!\nCard Number: " + result.card);
+    razorpay_payment_id:response.razorpay_payment_id,
 
-                            window.location.href =
-                                "/LuckyDraw/DownloadReceipt?card=" + result.card;
+    razorpay_order_id:response.razorpay_order_id,
 
-                        }
-                        else {
+    razorpay_signature:response.razorpay_signature
 
-                            alert(result.message || "Payment verification failed");
+    })
 
-                        }
+    })
 
-                    });
+    .then(r=>r.json())
 
-                },
+    .then(result=>{
 
-                prefill: {
+    if(result.success){
 
-                    name: entry.FullName,
-                    contact: entry.MobileNumber
+    document.getElementById("cardNumber").innerText=result.card;
 
-                },
+    document.getElementById("downloadBtn").href =
+    "/LuckyDraw/DownloadReceipt?card="+result.card;
 
-                theme: {
+    new bootstrap.Modal(
+    document.getElementById("successModal")
+    ).show();
 
-                    color: "#0d3b66"
+    }else{
 
-                }
+    alert(result.message);
+    document.getElementById("payButton").disabled=false;
 
-            };
+    }
 
-            var rzp = new Razorpay(options);
+    });
 
-            rzp.open();
-
-        });
+    }
 
     };
+
+    new Razorpay(options).open();
+
+    });
+
+    };
+
+
+    document.getElementById("downloadBtn").addEventListener("click",function(){
+
+    const modalElement=document.getElementById("successModal");
+    const modal=bootstrap.Modal.getInstance(modalElement);
+
+    if(modal){
+    modal.hide();
+    }
+
+    });
 
 </script>

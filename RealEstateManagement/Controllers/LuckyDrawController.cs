@@ -5,21 +5,31 @@ using RealEstateManagement.Models;
 using RealEstateManagement.Services;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 public class LuckyDrawController : Controller
 {
     private readonly ApplicationDbContext _context;
+    private readonly IConfiguration _config;
 
-    private string key = "rzp_test_SNeJ15GTPw2Cvx";
-    private string secret = "PMfccL3KwBs6pOTnQuE48HKm";
+    private readonly string _razorKey;
+    private readonly string _razorSecret;
+    private readonly int _entryAmount;
 
-    public LuckyDrawController(ApplicationDbContext context)
+    public LuckyDrawController(ApplicationDbContext context, IConfiguration config)
     {
         _context = context;
+        _config = config;
+
+        _razorKey = _config["Razorpay:Key"];
+        _razorSecret = _config["Razorpay:Secret"];
+        _entryAmount = Convert.ToInt32(_config["LuckyDraw:EntryAmount"]);
     }
 
     public IActionResult Apply()
     {
+        ViewBag.EntryAmount = _entryAmount;
+        ViewBag.RazorKey = _razorKey;
         return View();
     }
 
@@ -27,90 +37,121 @@ public class LuckyDrawController : Controller
     [HttpPost]
     public IActionResult CreateOrder()
     {
-        RazorpayClient client = new RazorpayClient(key, secret);
+        RazorpayClient client = new RazorpayClient(_razorKey, _razorSecret);
 
-        Dictionary<string, object> options = new Dictionary<string, object>();
-
-        options.Add("amount", 100); // ₹1 test payment
-        options.Add("currency", "INR");
-        options.Add("receipt", "LuckyDraw_" + DateTime.Now.Ticks);
+        Dictionary<string, object> options = new Dictionary<string, object>
+        {
+            { "amount", _entryAmount * 100 },
+            { "currency", "INR" },
+            { "receipt", "LuckyDraw_" + DateTime.Now.Ticks }
+        };
 
         Order order = client.Order.Create(options);
 
         return Json(new
         {
-            orderId = order["id"].ToString()
+            orderId = order["id"].ToString(),
+            amount = _entryAmount
         });
     }
 
-    // Verify Payment
     [HttpPost]
     public IActionResult VerifyPayment([FromBody] PaymentRequest request)
     {
-        var entry = request.Entry;
-
-        entry.PaymentId = request.razorpay_payment_id;
-        entry.RazorpayOrderId = request.razorpay_order_id;
-        entry.PaymentStatus = true;
-        entry.EntryDate = DateTime.Now;
-        entry.EntryAmount = 1100;
-
-        entry.CardNumber = GenerateUniqueCardNumber();
-
-        _context.LuckyDrawEntries.Add(entry);
-        _context.SaveChanges();
-
-        return Json(new
+        try
         {
-            success = true,
-            card = entry.CardNumber
-        });
-    }
+            if (request?.Entry == null)
+                return Json(new { success = false, message = "Invalid request." });
 
-    // Generate Razorpay Signature
-    private string GenerateSignature(string payload)
-    {
-        byte[] keyBytes = Encoding.UTF8.GetBytes(secret);
-        byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
+            var entry = request.Entry;
 
-        using (HMACSHA256 hmac = new HMACSHA256(keyBytes))
+            // VALIDATIONS
+            if (string.IsNullOrWhiteSpace(entry.FullName))
+                return Json(new { success = false, message = "Full Name is required." });
+
+            if (!Regex.IsMatch(entry.MobileNumber, "^[6-9][0-9]{9}$"))
+                return Json(new { success = false, message = "Invalid mobile number." });
+
+            if (!Regex.IsMatch(entry.AadhaarNumber, "^[0-9]{12}$"))
+                return Json(new { success = false, message = "Invalid Aadhaar number." });
+
+            //bool aadhaarExists = _context.LuckyDrawEntries
+            //    .Any(x => x.AadhaarNumber == entry.AadhaarNumber);
+
+            //if (aadhaarExists)
+            //    return Json(new { success = false, message = "Aadhaar already registered." });
+
+            bool paymentExists = _context.LuckyDrawEntries
+                .Any(x => x.PaymentId == request.razorpay_payment_id);
+
+            if (paymentExists)
+                return Json(new { success = false, message = "Payment already processed." });
+
+            // VERIFY SIGNATURE
+            string payload = request.razorpay_order_id + "|" + request.razorpay_payment_id;
+            string signature = GenerateSignature(payload);
+
+            if (signature != request.razorpay_signature)
+                return Json(new { success = false, message = "Payment verification failed." });
+
+            entry.PaymentId = request.razorpay_payment_id;
+            entry.RazorpayOrderId = request.razorpay_order_id;
+            entry.PaymentStatus = true;
+            entry.EntryDate = DateTime.UtcNow;
+            entry.EntryAmount = _entryAmount;
+            entry.PrizeChoice = entry.PrizeChoice ?? "No Prize";
+            entry.CardNumber = GenerateUniqueCardNumber();
+
+            _context.LuckyDrawEntries.Add(entry);
+            _context.SaveChanges();
+
+            return Json(new
+            {
+                success = true,
+                card = entry.CardNumber
+            });
+        }
+        catch
         {
-            byte[] hash = hmac.ComputeHash(payloadBytes);
-            return BitConverter.ToString(hash).Replace("-", "").ToLower();
+            return Json(new
+            {
+                success = false,
+                message = "Unexpected error occurred."
+            });
         }
     }
 
-    // Generate Card Number
+    private string GenerateSignature(string payload)
+    {
+        byte[] keyBytes = Encoding.UTF8.GetBytes(_razorSecret);
+        byte[] payloadBytes = Encoding.UTF8.GetBytes(payload);
+
+        using var hmac = new HMACSHA256(keyBytes);
+
+        return BitConverter.ToString(hmac.ComputeHash(payloadBytes))
+            .Replace("-", "")
+            .ToLower();
+    }
+
     private string GenerateUniqueCardNumber()
     {
-        var last = _context.LuckyDrawEntries.OrderByDescending(x => x.Id).FirstOrDefault();
+        var last = _context.LuckyDrawEntries
+            .OrderByDescending(x => x.Id)
+            .FirstOrDefault();
 
         int next = last == null ? 1 : last.Id + 1;
 
-        return $"WL-2026-{next:D5}";
+        return $"WL-{DateTime.Now.Year}-{next:D5}";
     }
 
-    // Generate Receipt
-    public IActionResult Receipt(string card)
-    {
-        var entry = _context.LuckyDrawEntries
-            .FirstOrDefault(x => x.CardNumber == card);
-
-        if (entry == null)
-            return NotFound();
-
-        return View(entry);
-    }
     public IActionResult DownloadReceipt(string card)
     {
         var entry = _context.LuckyDrawEntries
-            .AsEnumerable()
             .FirstOrDefault(x => x.CardNumber == card);
 
         if (entry == null)
             return NotFound();
 
-        //var pdf = LuckyDrawReceiptService.Generate(entry);
         var pdf = PremiumReceiptService.Generate(entry);
 
         return File(pdf, "application/pdf",

@@ -1,11 +1,10 @@
 ﻿using BarcodeStandard;
-using Microsoft.AspNetCore.Mvc;
 using QRCoder;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using RealEstateManagement.Models;
 using SkiaSharp;
-using System.Drawing;
 using System.IO;
 
 namespace RealEstateManagement.Services
@@ -19,52 +18,71 @@ namespace RealEstateManagement.Services
             var qrBytes = GenerateQr($"https://wealthline.com/verify/{entry.CardNumber}");
             var barcodeBytes = GenerateBarcode(entry.CardNumber);
 
+            // Load signature image
+            var signaturePath = "wwwroot/image/sign.png";
+            byte[] signatureBytes = File.Exists(signaturePath)? File.ReadAllBytes(signaturePath): null;
+
             var document = Document.Create(container =>
             {
                 container.Page(page =>
                 {
                     page.Size(PageSizes.A4);
-                    page.Margin(25);
+                    page.Margin(20);
 
                     page.Content().Column(col =>
                     {
-                        col.Spacing(15);
+                        col.Spacing(8);
 
                         //--------------------------------
-                        // HEADER
+                        // COUPON HEADER
                         //--------------------------------
 
-                        col.Item().Background("#0D47A1").Padding(15).Row(row =>
+                        col.Item().Height(120).Row(row =>
                         {
-                            row.RelativeItem().Column(c =>
-                            {
-                                c.Item().Text("WEALTHLINE ROYAL RESIDENCES")
-                                    .FontColor(Colors.White)
-                                    .FontSize(26)
-                                    .Bold();
-
-                                c.Item().Text("Grand Lucky Draw Opportunity")
-                                    .FontColor(Colors.White)
-                                    .FontSize(14);
-                            });
-
-                            row.ConstantItem(120)
-                                .Background("#FFC107")
-                                .Padding(10)
+                            row.ConstantItem(70)
+                                .Background("#C62828")
                                 .AlignCenter()
                                 .AlignMiddle()
-                                .Text($"CARD\n{entry.CardNumber}")
+                                .RotateLeft()
+                                .Text($"No {entry.CardNumber}")
+                                .FontColor(Colors.White)
                                 .FontSize(14)
                                 .Bold();
+
+                            row.RelativeItem()
+                                .Background("#FFC107")
+                                .Padding(12)
+                                .Column(c =>
+                                {
+                                    c.Spacing(4);
+
+                                    c.Item().AlignCenter().Text("WEALTHLINE ROYAL RESIDENCES")
+                                        .FontSize(14)
+                                        .Bold();
+
+                                    c.Item().AlignCenter().Text("LUCKY DRAW COUPON")
+                                        .FontSize(16)
+                                        .Bold()
+                                        .FontColor("#C62828");
+
+                                    c.Item().Text($"Receipt No : {receiptId}")
+                                        .FontSize(10);
+
+                                    c.Item().Text($"Participant : {entry.FullName}")
+                                        .FontSize(10);
+
+                                    c.Item().Text($"Mobile : {entry.MobileNumber}")
+                                        .FontSize(10);
+                                });
                         });
 
                         //--------------------------------
-                        // RECEIPT TITLE
+                        // TITLE
                         //--------------------------------
 
                         col.Item().AlignCenter()
                             .Text("Lucky Draw Registration Receipt")
-                            .FontSize(20)
+                            .FontSize(16)
                             .Bold();
 
                         col.Item().LineHorizontal(1);
@@ -77,30 +95,28 @@ namespace RealEstateManagement.Services
                         {
                             table.ColumnsDefinition(c =>
                             {
-                                c.ConstantColumn(200);
+                                c.ConstantColumn(160);
                                 c.RelativeColumn();
                             });
 
-                            AddRow(table, "Receipt ID", receiptId);
-                            AddRow(table, "Participant Name", entry.FullName);
-                            AddRow(table, "Mobile", entry.MobileNumber);
                             AddRow(table, "Address", entry.Address);
                             AddRow(table, "Aadhaar", entry.AadhaarNumber);
                             AddRow(table, "Selected Prize", entry.PrizeChoice);
                             AddRow(table, "Payment ID", entry.PaymentId);
+
                             AddRow(table, "Payment Date",
-                                entry.EntryDate?.ToString("dd MMM yyyy hh:mm tt"));
+                                entry.EntryDate?.ToString("dd MMM yyyy hh:mm tt") ?? "-");
                         });
 
                         //--------------------------------
-                        // AMOUNT BOX
+                        // AMOUNT
                         //--------------------------------
 
                         col.Item().AlignCenter()
                             .Background("#F57C00")
-                            .Padding(12)
-                            .Text("Registration Amount: ₹1100")
-                            .FontSize(22)
+                            .Padding(6)
+                            .Text($"Registration Amount: ₹{entry.EntryAmount}")
+                            .FontSize(14)
                             .Bold()
                             .FontColor(Colors.White);
 
@@ -112,20 +128,18 @@ namespace RealEstateManagement.Services
                         {
                             row.RelativeItem().Column(c =>
                             {
-                                c.Item().Text("Verification QR Code")
-                                    .Bold();
-
-                                // Fixed: call Width on the container (IContainer) before Image(...)
-                                c.Item().Width(120).Image(qrBytes);
+                                c.Item().Text("QR Verification").FontSize(10).Bold();
+                                c.Item().Width(80).Image(qrBytes);
                             });
 
-                            row.RelativeItem().Column(c =>
+                            row.RelativeItem().AlignRight().Column(c =>
                             {
-                                c.Item().Text("Card Barcode")
-                                    .Bold();
+                                c.Item().AlignRight().Text("Card Barcode").FontSize(10).Bold();
 
-                                // Fixed: call Width on the container (IContainer) before Image(...)
-                                c.Item().Width(200).Image(barcodeBytes);
+                                c.Item()
+                                    .AlignRight()
+                                    .Width(140)
+                                    .Image(barcodeBytes);
                             });
                         });
 
@@ -135,30 +149,51 @@ namespace RealEstateManagement.Services
 
                         col.Item().Column(c =>
                         {
-                            c.Item().Text("Terms & Conditions")
+                            c.Item().Text("नियम एवं शर्तें (Terms & Conditions)")
                                 .Bold()
-                                .FontSize(14);
+                                .FontSize(10);
 
-                            c.Item().Text("• Each participant is eligible for only one prize.");
-                            c.Item().Text("• Prize cannot be exchanged for cash.");
-                            c.Item().Text("• Winners will be selected through computerized lucky draw.");
-                            c.Item().Text("• Organizer decision will be final.");
+                            c.Item().Text("1. यह लकी ड्रॉ योजना सीमित समय के लिए है.").FontSize(8);
+                            c.Item().Text("2. एक व्यक्ति केवल एक ही इनाम जीत सकता है.").FontSize(8);
+                            c.Item().Text("3. विजेताओं का चयन कंप्यूटर / कूपन द्वारा रैंडम ड्रॉ से किया जाएगा.").FontSize(8);
+                            c.Item().Text("4. 1000 Sq.ft प्लॉट चयनित लोकेशन में ही मान्य होगा. अन्य शुल्क विजेता द्वारा वहन किए जाएंगे.").FontSize(8);
+                            c.Item().Text("5. LCD TV और सिल्वर कॉइन की ब्रांड उपलब्धता अनुसार दी जाएगी.").FontSize(8);
+                            c.Item().Text("6. इनाम नकद में नहीं बदले जाएंगे.").FontSize(8);
+                            c.Item().Text("7. गलत जानकारी देने पर एंट्री रद्द मानी जाएगी.").FontSize(8);
+                            c.Item().Text("8. विजेताओं की घोषणा फोन / WhatsApp / ऑफिस नोटिस से की जाएगी.").FontSize(8);
+                            c.Item().Text("9. विजेता को पहचान प्रमाण दिखाना अनिवार्य होगा.").FontSize(8);
+                            c.Item().Text("10. आयोजक को योजना में बदलाव या ड्रॉ रद्द करने का अधिकार है.").FontSize(8);
+                            c.Item().Text("11. आयोजक का निर्णय अंतिम होगा.").FontSize(8);
+                            c.Item().Text("12. कूपन सुरक्षित रखना प्रतिभागी की जिम्मेदारी होगी.").FontSize(8);
                         });
 
                         //--------------------------------
                         // SIGNATURE
                         //--------------------------------
 
-                        col.Item().PaddingTop(30).Row(row =>
+                        col.Item().PaddingTop(10).Row(row =>
                         {
                             row.RelativeItem();
 
-                            row.ConstantItem(200).Column(c =>
+                            row.ConstantItem(200).AlignCenter().Column(c =>
                             {
-                                c.Item().LineHorizontal(1);
-                                c.Item().AlignCenter()
+                                if (signatureBytes != null)
+                                {
+                                    c.Item()
+                                        .AlignCenter()
+                                        .Height(40)
+                                        .Image(signatureBytes);
+                                }
+
+                                c.Item()
+                                    .AlignCenter()
+                                    .Width(140)
+                                    .LineHorizontal(1);
+
+                                c.Item()
+                                    .AlignCenter()
                                     .Text("Authorized Signature")
-                                    .FontSize(10);
+                                    .FontSize(8);
                             });
                         });
 
@@ -166,9 +201,9 @@ namespace RealEstateManagement.Services
                         // FOOTER
                         //--------------------------------
 
-                        col.Item().PaddingTop(20).AlignCenter()
+                        col.Item().AlignCenter()
                             .Text("Thank you for participating in Wealthline Royal Residences")
-                            .FontSize(10);
+                            .FontSize(8);
                     });
                 });
             });
@@ -178,8 +213,8 @@ namespace RealEstateManagement.Services
 
         static void AddRow(TableDescriptor table, string label, string value)
         {
-            table.Cell().BorderBottom(1).Padding(5).Text(label).Bold();
-            table.Cell().BorderBottom(1).Padding(5).Text(value ?? "-");
+            table.Cell().Padding(3).Text(label).FontSize(9).Bold();
+            table.Cell().Padding(3).Text(value ?? "-").FontSize(9);
         }
 
         static byte[] GenerateQr(string text)
@@ -193,7 +228,14 @@ namespace RealEstateManagement.Services
         static byte[] GenerateBarcode(string text)
         {
             var barcode = new BarcodeStandard.Barcode();
-            var skImage = barcode.Encode(BarcodeStandard.Type.Code128, text, SKColors.Black, SKColors.White, 300, 80);
+
+            var skImage = barcode.Encode(
+                BarcodeStandard.Type.Code128,
+                text,
+                SKColors.Black,
+                SKColors.White,
+                260,
+                70);
 
             using var data = skImage.Encode(SKEncodedImageFormat.Png, 100);
             return data.ToArray();
