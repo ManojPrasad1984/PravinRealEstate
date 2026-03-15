@@ -19,7 +19,7 @@ namespace RealEstateManagement.Services
             var barcodeBytes = GenerateBarcode(entry.CardNumber);
 
             // Load signature image
-            var signaturePath = "wwwroot/image/sign.png";
+            var signaturePath = "wwwroot/signature/signature.png";
             byte[] signatureBytes = File.Exists(signaturePath)? File.ReadAllBytes(signaturePath): null;
 
             var document = Document.Create(container =>
