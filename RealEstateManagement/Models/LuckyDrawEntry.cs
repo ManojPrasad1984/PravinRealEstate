@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using RealEstateManagement.Services;
+using System.ComponentModel.DataAnnotations;
 namespace RealEstateManagement.Models
 {
     public class LuckyDrawEntry
@@ -28,5 +29,10 @@ namespace RealEstateManagement.Models
         public string CardNumber { get; set; }
 
         public DateTime? EntryDate { get; set; }
+        // NEW FIELD
+        public Guid? AgentId { get; set; }
+
+        // Navigation
+        public Agent? Agent { get; set; }
     }
 }

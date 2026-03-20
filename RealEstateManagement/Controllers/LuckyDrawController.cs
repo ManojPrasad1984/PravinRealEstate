@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using Razorpay.Api;
 using RealEstateManagement.Data;
 using RealEstateManagement.Models;
@@ -30,6 +32,15 @@ public class LuckyDrawController : Controller
     {
         ViewBag.EntryAmount = _entryAmount;
         ViewBag.RazorKey = _razorKey;
+
+        ViewBag.Agents = _context.Agents
+            .Where(a => a.IsActive)
+            .Select(a => new SelectListItem
+            {
+                Value = a.Id.ToString(),
+                Text = a.AgentName + " (" + a.AgentCode + ")"
+            }).ToList();
+
         return View();
     }
 
@@ -100,6 +111,7 @@ public class LuckyDrawController : Controller
             entry.EntryDate = DateTime.UtcNow;
             entry.EntryAmount = _entryAmount;
             entry.PrizeChoice = entry.PrizeChoice ?? "No Prize";
+            entry.AgentId = entry.AgentId == Guid.Empty ? null : entry.AgentId;
             entry.CardNumber = GenerateUniqueCardNumber();
 
             _context.LuckyDrawEntries.Add(entry);
@@ -147,7 +159,8 @@ public class LuckyDrawController : Controller
     public IActionResult DownloadReceipt(string card)
     {
         var entry = _context.LuckyDrawEntries
-            .FirstOrDefault(x => x.CardNumber == card);
+       .Include(x => x.Agent) // 🔥 IMPORTANT
+       .FirstOrDefault(x => x.CardNumber == card);
 
         if (entry == null)
             return NotFound();
@@ -157,4 +170,6 @@ public class LuckyDrawController : Controller
         return File(pdf, "application/pdf",
             $"LuckyDraw_{entry.CardNumber}.pdf");
     }
+
+   
 }

@@ -2,12 +2,26 @@ body {
     font-family: Segoe UI;
     background: #f8f5f0;
     color: #333;
+    padding-top: 80px; /* for fixed navbar */
+}
+
+/* SMOOTH SCROLL */
+html {
+    scroll-behavior: smooth;
+}
+
+/* SECTION FIX FOR NAVBAR */
+section {
+    scroll-margin-top: 90px;
 }
 
 /* NAVBAR */
-
 .navbar-custom {
     background: #1f3c88;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
 }
 
 .brand-text {
@@ -16,14 +30,15 @@ body {
 }
 
 /* HERO */
-
 .hero-section {
-    height: 80vh;
+    height: 90vh;
     display: flex;
     align-items: center;
-    background: linear-gradient(rgba(0,0,0,.6),rgba(0,0,0,.6)), url('/image/layout.jpeg');
+    background: linear-gradient(rgba(0,0,0,.6), rgba(0,0,0,.6)), url('/image/layout.jpeg');
     background-size: cover;
+    background-position: center;
     color: white;
+    text-align: center;
 }
 
 .hero-title {
@@ -36,21 +51,26 @@ body {
 }
 
 /* BUTTON */
-
 .btn-scheme {
     background: #f77f00;
     color: white;
     font-weight: 600;
     padding: 12px 25px;
     border-radius: 30px;
+    transition: 0.3s;
 }
 
     .btn-scheme:hover {
         background: #d62828;
+        transform: scale(1.05);
     }
 
-/* SCHEME */
+/* COMMON SECTION */
+.section-padding {
+    padding: 70px 0;
+}
 
+/* SCHEME */
 .scheme-section {
     padding: 80px 0;
 }
@@ -66,7 +86,6 @@ body {
 }
 
 /* LAYOUT */
-
 .layout-section {
     padding: 80px 0;
     background: white;
@@ -80,22 +99,30 @@ body {
 }
 
 /* TERMS */
-
 .terms-section {
     padding: 80px 0;
     background: #f1f1f1;
 }
 
 /* CONTACT */
-
 .contact-section {
     background: #1f3c88;
     color: white;
     padding: 60px 0;
 }
 
-/* FOOTER */
+/* CARD UI */
+.card {
+    border-radius: 12px;
+    border: none;
+}
 
+    .card:hover {
+        transform: translateY(-6px);
+        transition: 0.3s;
+    }
+
+/* FOOTER */
 .footer-section {
     background: #111;
     color: white;
@@ -109,4 +136,61 @@ body {
 
     .footer-links li {
         margin-bottom: 8px;
+    }
+
+        .footer-links li a {
+            color: white;
+            text-decoration: none;
+        }
+
+            .footer-links li a:hover {
+                text-decoration: underline;
+            }
+/* NAVBAR BASE */
+.navbar-custom {
+    background: #1f3c88;
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+    /* SCROLL EFFECT */
+    .navbar-custom.scrolled {
+        background: #142a63;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+/* BODY OFFSET */
+.main-body {
+    padding-top: 80px;
+}
+
+/* NAV LINK */
+.nav-link {
+    position: relative;
+    transition: 0.3s;
+}
+
+    /* HOVER UNDERLINE */
+    .nav-link::after {
+        content: "";
+        position: absolute;
+        width: 0%;
+        height: 2px;
+        bottom: 0;
+        left: 0;
+        background: #f77f00;
+        transition: 0.3s;
+    }
+
+    .nav-link:hover::after {
+        width: 100%;
+    }
+
+    /* ACTIVE LINK */
+    .nav-link.active {
+        color: #f77f00 !important;
+        font-weight: 600;
     }

@@ -103,7 +103,11 @@ namespace RealEstateManagement.Services
                             AddRow(table, "Aadhaar", entry.AadhaarNumber);
                             AddRow(table, "Selected Prize", entry.PrizeChoice);
                             AddRow(table, "Payment ID", entry.PaymentId);
-
+                            // 🔥 NEW FIELD
+                            AddRow(table, "Referred By",
+                                entry.Agent != null
+                                    ? $"{entry.Agent.AgentName} ({entry.Agent.AgentCode})"
+                                    : "N/A");
                             AddRow(table, "Payment Date",
                                 entry.EntryDate?.ToString("dd MMM yyyy hh:mm tt") ?? "-");
                         });

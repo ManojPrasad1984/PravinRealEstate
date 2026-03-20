@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.EntityFrameworkCore;
 using RealEstateManagement.Models;
+using RealEstateManagement.Services;
 namespace RealEstateManagement.Data
 {
   
@@ -13,5 +14,6 @@ namespace RealEstateManagement.Data
         }
 
         public DbSet<LuckyDrawEntry> LuckyDrawEntries { get; set; }
+        public DbSet<Agent> Agents { get; set; }
     }
 }
