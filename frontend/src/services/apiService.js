@@ -1,14 +1,31 @@
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 
 async function send(path, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options
+    });
 
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.message || 'API request failed');
-  return data;
+    const raw = await response.text();
+    const data = raw ? JSON.parse(raw) : {};
+
+    if (!response.ok) {
+      throw new Error(data.message || data.detail || 'API request failed');
+    }
+
+    return data;
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw new Error('Invalid API response format.');
+    }
+
+    if (error.name === 'TypeError') {
+      throw new Error('Cannot reach API. Check REACT_APP_API_BASE_URL and CORS settings.');
+    }
+
+    throw error;
+  }
 }
 
 export const apiService = {

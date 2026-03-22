@@ -21,8 +21,13 @@ public class VerifyPaymentFunction
 
     [Function("VerifyPayment")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "payments/verify")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", "options", Route = "payments/verify")] HttpRequestData req)
     {
+        if (req.Method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
+        {
+            return HttpResponseHelper.CreateCorsResponse(req, HttpStatusCode.NoContent);
+        }
+
         var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
         var payload = JsonSerializer.Deserialize<PaymentVerifyRequest>(requestBody, new JsonSerializerOptions
         {
@@ -69,15 +74,11 @@ public class VerifyPaymentFunction
         _dbContext.LuckyDrawEntries.Add(entry);
         await _dbContext.SaveChangesAsync();
 
-        var response = req.CreateResponse(HttpStatusCode.OK);
-        await response.WriteStringAsync(JsonSerializer.Serialize(new
+        return await HttpResponseHelper.CreateJsonResponse(req, new
         {
             success = true,
             cardNumber = entry.CardNumber
-        }));
-        response.Headers.Add("Content-Type", "application/json");
-
-        return response;
+        });
     }
 
     private async Task<string> GenerateCardNumber()
@@ -91,11 +92,6 @@ public class VerifyPaymentFunction
         return $"WL-{DateTime.UtcNow.Year}-{next:D5}";
     }
 
-    private static async Task<HttpResponseData> CreateError(HttpRequestData req, string message)
-    {
-        var response = req.CreateResponse(HttpStatusCode.BadRequest);
-        await response.WriteStringAsync(JsonSerializer.Serialize(new { success = false, message }));
-        response.Headers.Add("Content-Type", "application/json");
-        return response;
-    }
+    private static Task<HttpResponseData> CreateError(HttpRequestData req, string message)
+        => HttpResponseHelper.CreateJsonResponse(req, new { success = false, message }, HttpStatusCode.BadRequest);
 }

@@ -18,7 +18,7 @@ export default function ApplyForm() {
   const [successCard, setSuccessCard] = useState('');
 
   useEffect(() => {
-    apiService.getAgents().then(setAgents).catch(() => setError('Unable to load agents.'));
+    apiService.getAgents().then(setAgents).catch((err) => setError(err.message || 'Unable to load agents.'));
   }, []);
 
   const onChange = (e) => setForm((old) => ({ ...old, [e.target.name]: e.target.value }));

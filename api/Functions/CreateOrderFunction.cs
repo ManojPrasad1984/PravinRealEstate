@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using LuckyDraw.Api.Helpers;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 
@@ -18,17 +19,22 @@ public class CreateOrderFunction
 
     [Function("CreateOrder")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "orders")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", "options", Route = "orders")] HttpRequestData req)
     {
+        if (req.Method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
+        {
+            return HttpResponseHelper.CreateCorsResponse(req, HttpStatusCode.NoContent);
+        }
+
         var razorpayKey = Environment.GetEnvironmentVariable("RazorpayKey");
         var razorpaySecret = Environment.GetEnvironmentVariable("RazorpaySecret");
         var entryAmount = int.TryParse(Environment.GetEnvironmentVariable("EntryAmount"), out var amount) ? amount : 500;
 
         if (string.IsNullOrWhiteSpace(razorpayKey) || string.IsNullOrWhiteSpace(razorpaySecret))
         {
-            var badConfig = req.CreateResponse(HttpStatusCode.InternalServerError);
-            await badConfig.WriteStringAsync("Razorpay configuration missing.");
-            return badConfig;
+            return await HttpResponseHelper.CreateJsonResponse(req,
+                new { success = false, message = "Razorpay configuration missing." },
+                HttpStatusCode.InternalServerError);
         }
 
         var client = _httpClientFactory.CreateClient();
@@ -46,25 +52,21 @@ public class CreateOrderFunction
         using var result = await client.PostAsync("https://api.razorpay.com/v1/orders", content);
         var resultBody = await result.Content.ReadAsStringAsync();
 
-        var response = req.CreateResponse(result.IsSuccessStatusCode ? HttpStatusCode.OK : HttpStatusCode.BadRequest);
-
         if (!result.IsSuccessStatusCode)
         {
-            await response.WriteStringAsync(resultBody);
-            return response;
+            return await HttpResponseHelper.CreateJsonResponse(req,
+                new { success = false, message = "Failed to create Razorpay order.", detail = resultBody },
+                HttpStatusCode.BadRequest);
         }
 
         using var jsonDoc = JsonDocument.Parse(resultBody);
         var orderId = jsonDoc.RootElement.GetProperty("id").GetString();
 
-        await response.WriteStringAsync(JsonSerializer.Serialize(new
+        return await HttpResponseHelper.CreateJsonResponse(req, new
         {
             orderId,
             amount = entryAmount,
             key = razorpayKey
-        }));
-
-        response.Headers.Add("Content-Type", "application/json");
-        return response;
+        });
     }
 }
