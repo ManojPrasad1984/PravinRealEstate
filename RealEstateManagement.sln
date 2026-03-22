@@ -5,6 +5,8 @@ VisualStudioVersion = 17.9.34310.174
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateManagement", "RealEstateManagement\RealEstateManagement.csproj", "{A8E66BCA-30C7-4EE6-98C9-61B8E2C192F2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RealEstateManagement.Functions", "RealEstateManagement.Functions\RealEstateManagement.Functions.csproj", "{F910341B-8AAF-4A28-BBE2-2C859C16CFCD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{A8E66BCA-30C7-4EE6-98C9-61B8E2C192F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A8E66BCA-30C7-4EE6-98C9-61B8E2C192F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A8E66BCA-30C7-4EE6-98C9-61B8E2C192F2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F910341B-8AAF-4A28-BBE2-2C859C16CFCD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F910341B-8AAF-4A28-BBE2-2C859C16CFCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F910341B-8AAF-4A28-BBE2-2C859C16CFCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F910341B-8AAF-4A28-BBE2-2C859C16CFCD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
