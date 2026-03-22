@@ -114,7 +114,9 @@ export default function ApplyForm() {
                   <select className="form-select" name="agentId" value={form.agentId} onChange={onChange}>
                     <option value="">Select Agent</option>
                     {agents.map((agent) => (
-                      <option key={agent.id} value={agent.id}>{agent.displayName}</option>
+                      <option key={agent.id} value={agent.id}>
+                        {agent.displayName}
+                      </option>
                     ))}
                   </select>
                 </div>
