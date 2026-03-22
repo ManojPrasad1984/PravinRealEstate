@@ -6,6 +6,8 @@ namespace LuckyDraw.Api.Helpers;
 
 public static class HttpResponseHelper
 {
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+
     public static HttpResponseData CreateCorsResponse(HttpRequestData req, HttpStatusCode statusCode = HttpStatusCode.OK)
     {
         var response = req.CreateResponse(statusCode);
@@ -17,7 +19,7 @@ public static class HttpResponseHelper
     {
         var response = CreateCorsResponse(req, statusCode);
         response.Headers.Add("Content-Type", "application/json");
-        await response.WriteStringAsync(JsonSerializer.Serialize(payload));
+        await response.WriteStringAsync(JsonSerializer.Serialize(payload, JsonOptions));
         return response;
     }
 
