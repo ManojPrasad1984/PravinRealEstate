@@ -1,0 +1,36 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Frontend: Chrome (localhost:3000)",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/frontend/src"
+    },
+    {
+      "name": "API: Attach to .NET Functions Worker",
+      "type": "coreclr",
+      "request": "attach",
+      "processId": "${command:pickProcess}",
+      "justMyCode": true
+    },
+    {
+      "name": "Start API + Frontend + Open Browser",
+      "type": "pwa-chrome",
+      "request": "launch",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}/frontend/src",
+      "preLaunchTask": "dev: start all"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full stack debug",
+      "configurations": [
+        "Start API + Frontend + Open Browser",
+        "API: Attach to .NET Functions Worker"
+      ]
+    }
+  ]
+}
