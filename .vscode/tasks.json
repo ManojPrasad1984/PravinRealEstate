@@ -1,0 +1,66 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "frontend: npm install",
+      "type": "shell",
+      "command": "npm",
+      "args": ["install"],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "frontend: start",
+      "type": "shell",
+      "command": "npm",
+      "args": ["start"],
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "."
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Starting the development server",
+          "endsPattern": "webpack compiled"
+        }
+      }
+    },
+    {
+      "label": "api: func start",
+      "type": "shell",
+      "command": "func",
+      "args": ["start", "--verbose"],
+      "options": {
+        "cwd": "${workspaceFolder}/api"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "custom",
+        "pattern": {
+          "regexp": "."
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Worker process started and initialized",
+          "endsPattern": "Host lock lease acquired by instance ID"
+        }
+      }
+    },
+    {
+      "label": "dev: start all",
+      "dependsOn": [
+        "api: func start",
+        "frontend: start"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    }
+  ]
+}
